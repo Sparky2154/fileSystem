@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/sparky/Desktop/ci/operating/project1/simfs/cmake-build-debug",
+  "command": "/usr/bin/cc  -I/usr/include/fuse   -D_FILE_OFFSET_BITS=64 -g -Wall --pedantic -g -O0 -D_DEBUG   -std=gnu11 -o CMakeFiles/simfs.dir/test_simfs.c.o   -c /home/sparky/Desktop/ci/operating/project1/simfs/test_simfs.c",
+  "file": "/home/sparky/Desktop/ci/operating/project1/simfs/test_simfs.c"
+},
+{
+  "directory": "/home/sparky/Desktop/ci/operating/project1/simfs/cmake-build-debug",
+  "command": "/usr/bin/cc  -I/usr/include/fuse   -D_FILE_OFFSET_BITS=64 -g -Wall --pedantic -g -O0 -D_DEBUG   -std=gnu11 -o CMakeFiles/simfs.dir/simfs.c.o   -c /home/sparky/Desktop/ci/operating/project1/simfs/simfs.c",
+  "file": "/home/sparky/Desktop/ci/operating/project1/simfs/simfs.c"
+}
+]

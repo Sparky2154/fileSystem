@@ -1,0 +1,3 @@
+/home/sparky/Desktop/ci/operating/project1/simfs/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/sparky/Desktop/ci/operating/project1/simfs/cmake-build-debug/CMakeFiles/simfs.dir
+/home/sparky/Desktop/ci/operating/project1/simfs/cmake-build-debug/CMakeFiles/edit_cache.dir
