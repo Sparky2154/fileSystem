@@ -364,9 +364,13 @@ short createHashFile(SIMFS_NAME_TYPE fileName, SIMFS_INDEX_TYPE* index, int inde
     hashLocation[hashValue].nodeReference = index[indexIndex];
     simfsContext->directory[hashValue]->next = NULL;
     SIMFS_INDEX_TYPE currentWorkingDirectory = simfsContext->processControlBlocks->currentWorkingDirectory;
-    int i = 0;
-    simfsContext->directory[currentWorkingDirectory]
-    //where do I put the current working directories
+    SIMFS_DIR_ENT* i = simfsContext->directory[currentWorkingDirectory];
+    if(i != NULL) {
+        while (i->next != NULL) {
+            i=i->next;
+        }
+        *i = *hashLocation;
+    }
 }
 
 SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
