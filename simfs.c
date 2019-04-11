@@ -393,7 +393,7 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
                 strcpy(simfsVolume->block[i].content.fileDescriptor.name, fileName);
                 simfsVolume->block[i].content.fileDescriptor.block_ref = findNextEmpty();
                 if (createHashFile(fileName, index, j) == -1){
-                    return SIMFS_DUPLICATE_ERROR;
+                    return SIMFS_WRITE_ERROR;
                 }
                 return SIMFS_NO_ERROR;
             }
