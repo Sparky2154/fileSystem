@@ -27,36 +27,6 @@ struct ffReturn{
     int indexNumber;
 };
 
-
-struct ffReturn* findFile(SIMFS_NAME_TYPE fileName) {
-//    SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsVolume->superblock.attr.rootNodeIndex].content.index;
-//    short check = 0;
-//    do {
-//        for (int j = 0; j < 6; ++j) {
-//            if (index[j] != 0 && strcmp(fileName, simfsVolume->block[index[j]].content.fileDescriptor.name) == 0) {
-//                struct ffReturn *ret = malloc(sizeof(struct ffReturn));
-//                ret->index = index;
-//                ret->indexNumber = j;
-//                return ret;
-//            }
-//        }
-//        if(index[6] != 0){
-//            index = simfsVolume->block[index[6]].content.index;
-//        } else{
-//            check = -1;
-//        }
-//    } while (check == 0);
-
-    SIMFS_DIR_ENT* hashLocation = &(simfsContext->directory[simfsContext->processControlBlocks->currentWorkingDirectory][hash((unsigned char*)fileName)]);
-
-
-
-
-    return ;
-}
-
-
-
 inline unsigned long hash(unsigned char *str)
 {
     register unsigned long hash = 5381;
@@ -373,6 +343,48 @@ short createHashFile(SIMFS_NAME_TYPE fileName, SIMFS_INDEX_TYPE* index, int inde
     }
 }
 
+void findEndOfIndex(SIMFS_INDEX_TYPE** index){
+    do{
+        for (int j = 0; j < 6; ++j) {
+            if (*index[j] == 0) {
+                return;
+            }
+        }
+        if(index[6] != 0) {
+            *index = simfsVolume->block[*index[6]].content.index;
+        } else{
+            *index = simfsVolume->block[simfsFindFreeBlock(simfsVolume->bitvector)].content.index;
+            simfsVolume->bitvector[*index[0]] = 1;
+        }
+    }while (index[6] != 0);
+}
+
+struct ffret{
+    SIMFS_INDEX_TYPE* index;
+    short number;
+};
+
+struct ffret* findFile(SIMFS_NAME_TYPE fileName){
+    SIMFS_INDEX_TYPE* index = simfsVolume->block[simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.fileDescriptor.block_ref].content.index;
+    do{
+        for (int j = 0; j < 6; ++j) {
+            if (index[j] != 0
+            && (simfsVolume->block[index[j]].type == SIMFS_FOLDER_CONTENT_TYPE
+            || simfsVolume->block[index[j]].type == SIMFS_FILE_CONTENT_TYPE)
+            && strcmp(simfsVolume->block[index[j]].content.fileDescriptor.name, fileName) == 0) {
+                struct ffret ret;
+                ret.index = index;
+                ret.number = j;
+            }
+        }
+        if(index[6] == 0) {
+            return 0;
+        }
+    }while (index[6] != 0);
+    return 0;
+ }
+
+
 SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
     // TODO: implement
 
@@ -380,26 +392,26 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
         return SIMFS_DUPLICATE_ERROR;
     }
 
-    SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsVolume->superblock.attr.rootNodeIndex].content.index;
-    int i = findNextEmpty();
+    SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.fileDescriptor.block_ref].content.index;
+    int i = simfsFindFreeBlock(simfsVolume->bitvector);
     simfsVolume->bitvector[i] = 1;
 
-    do{
-        for (int j = 0; j < 6; ++j) {
-            if (index[j] == 0) {
-                index[j] = (SIMFS_INDEX_TYPE) i;
-                simfsVolume->block[i].type = SIMFS_FILE_CONTENT_TYPE;
-                simfsVolume->block[i].content.fileDescriptor.type = type;
-                strcpy(simfsVolume->block[i].content.fileDescriptor.name, fileName);
-                simfsVolume->block[i].content.fileDescriptor.block_ref = findNextEmpty();
-                if (createHashFile(fileName, index, j) == -1){
-                    return SIMFS_WRITE_ERROR;
-                }
-                return SIMFS_NO_ERROR;
-            }
+    findEndOfIndex(&index);
+
+    for (int j = 0; j < 6; ++j) {
+        if(index[j] == 0){
+            index[j] = i;
+
+            simfsVolume->block[i].type = SIMFS_FILE_CONTENT_TYPE;
+            simfsVolume->block[i].content.fileDescriptor.type = type;
+            strcpy(simfsVolume->block[i].content.fileDescriptor.name, fileName);
+            simfsVolume->block[i].content.fileDescriptor.accessRights = simfsContext->globalOpenFileTable->accessRights;
+
+            return SIMFS_NO_ERROR;
         }
-        index = &(index[6]);
-    }while (index[6] != 0);
+    }
+
+
 
     return SIMFS_WRITE_ERROR;
 }
@@ -429,12 +441,36 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
 SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
 {
     // TODO: implement
-    struct ffReturn* file = findFile(fileName);
+    struct ffret* indexPoint = findFile(fileName);
+    SIMFS_INDEX_TYPE index2 = indexPoint->index[indexPoint->number];
+    SIMFS_INDEX_TYPE index = simfsVolume->block[index2].content.fileDescriptor.block_ref;
+    // todo set index2 to bad file descriptor
+    if (index == 0){
+        return SIMFS_NOT_FOUND_ERROR;
+    }
 
-    simfsVolume->bitvector[file->index[file->indexNumber]] = 0;
-    file->index[file->indexNumber] = 0;
+    if(strcmp(simfsVolume->block[index].content.fileDescriptor.name, fileName) == 0){
+        if(simfsVolume->block[index].type == SIMFS_INDEX_CONTENT_TYPE){
+            for (int i = 0; i < 7; ++i) {
+                if(simfsVolume->block[index].content.index[i] != 0){
+                    return SIMFS_NOT_EMPTY_ERROR;
+                }
+            }
+            if(simfsVolume->block[index].content.fileDescriptor.accessRights != simfsContext->globalOpenFileTable->accessRights) {
+                return SIMFS_ACCESS_ERROR; //todo access rights
+            }
+            if(simfsVolume->block[index].type == SIMFS_FILE_CONTENT_TYPE || simfsVolume->block[index].type == SIMFS_FOLDER_CONTENT_TYPE){
+                simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
+                simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
+                simfsVolume->block[index].content.fileDescriptor.block_ref = 0;
+            }
 
-    free(file);
+            simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[index]);
+            simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[index]);
+            index = SIMFS_INVALID_INDEX;
+        }
+    }
+
     return SIMFS_NO_ERROR;
 }
 
@@ -449,9 +485,6 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
 SIMFS_ERROR simfsGetFileInfo(SIMFS_NAME_TYPE fileName, SIMFS_FILE_DESCRIPTOR_TYPE *infoBuffer)
 {
     // TODO: implement
-    struct ffReturn* file = findFile(fileName);
-
-    infoBuffer = &(simfsVolume->block[file->index[file->indexNumber]].content.fileDescriptor);
 
     return SIMFS_NO_ERROR;
 }
