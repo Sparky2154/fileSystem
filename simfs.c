@@ -462,7 +462,8 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
         simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
         simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
         // todo set index2 to bad file descriptor
-        //simfsVolume->block[index].content =
+        indexPoint->index[indexPoint->number] = 0;
+        simfsVolume->block[index].type = SIMFS_INVALID_CONTENT_TYPE;
     }
 
 
