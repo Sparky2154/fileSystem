@@ -485,6 +485,20 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
 SIMFS_ERROR simfsGetFileInfo(SIMFS_NAME_TYPE fileName, SIMFS_FILE_DESCRIPTOR_TYPE *infoBuffer)
 {
     // TODO: implement
+    struct ffret* ff = findFile(fileName);
+    SIMFS_BLOCK_TYPE file = simfsVolume->block[ff->index[ff->number]];
+    SIMFS_FILE_DESCRIPTOR_TYPE* fileDescriptor = &(file.content.fileDescriptor);
+
+    infoBuffer->block_ref = fileDescriptor->block_ref;
+    infoBuffer->type = fileDescriptor->type;
+    infoBuffer->accessRights = fileDescriptor->accessRights;
+    infoBuffer->identifier = fileDescriptor->identifier;
+    strcpy(infoBuffer->name, fileDescriptor->name);
+    infoBuffer->creationTime = fileDescriptor->creationTime;
+    infoBuffer->lastAccessTime = fileDescriptor->lastAccessTime;
+    infoBuffer->lastModificationTime = fileDescriptor->lastModificationTime;
+    infoBuffer->owner = fileDescriptor->owner;
+    infoBuffer->size = fileDescriptor->size;
 
     return SIMFS_NO_ERROR;
 }
