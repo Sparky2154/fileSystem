@@ -372,16 +372,14 @@ struct ffret* findFile(SIMFS_NAME_TYPE fileName){
             && (simfsVolume->block[index[j]].type == SIMFS_FOLDER_CONTENT_TYPE
             || simfsVolume->block[index[j]].type == SIMFS_FILE_CONTENT_TYPE)
             && strcmp(simfsVolume->block[index[j]].content.fileDescriptor.name, fileName) == 0) {
-                struct ffret ret;
-                ret.index = index;
-                ret.number = j;
+                struct ffret *ret = malloc(sizeof(ret));
+                ret->index = index;
+                ret->number = j;
+                return ret;
             }
         }
-        if(index[6] == 0) {
-            return 0;
-        }
     }while (index[6] != 0);
-    return 0;
+    return NULL;
  }
 
 
@@ -394,7 +392,7 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
 
     SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.fileDescriptor.block_ref].content.index;
     int i = simfsFindFreeBlock(simfsVolume->bitvector);
-    simfsVolume->bitvector[i] = 1;
+    simfsFlipBit(simfsVolume->bitvector, i);
 
     findEndOfIndex(&index);
 
@@ -442,34 +440,31 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
 {
     // TODO: implement
     struct ffret* indexPoint = findFile(fileName);
-    SIMFS_INDEX_TYPE index2 = indexPoint->index[indexPoint->number];
-    SIMFS_INDEX_TYPE index = simfsVolume->block[index2].content.fileDescriptor.block_ref;
-    // todo set index2 to bad file descriptor
-    if (index == 0){
+    if (indexPoint == NULL){
         return SIMFS_NOT_FOUND_ERROR;
     }
+    SIMFS_INDEX_TYPE index2 = indexPoint->index[indexPoint->number];
+    SIMFS_INDEX_TYPE index = simfsVolume->block[index2].content.fileDescriptor.block_ref;
+    SIMFS_BLOCK_TYPE block = simfsVolume->block[index];
 
-    if(strcmp(simfsVolume->block[index].content.fileDescriptor.name, fileName) == 0){
-        if(simfsVolume->block[index].type == SIMFS_INDEX_CONTENT_TYPE){
-            for (int i = 0; i < 7; ++i) {
-                if(simfsVolume->block[index].content.index[i] != 0){
-                    return SIMFS_NOT_EMPTY_ERROR;
-                }
-            }
-            if(simfsVolume->block[index].content.fileDescriptor.accessRights != simfsContext->globalOpenFileTable->accessRights) {
-                return SIMFS_ACCESS_ERROR; //todo access rights
-            }
-            if(simfsVolume->block[index].type == SIMFS_FILE_CONTENT_TYPE || simfsVolume->block[index].type == SIMFS_FOLDER_CONTENT_TYPE){
-                simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
-                simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
-                simfsVolume->block[index].content.fileDescriptor.block_ref = 0;
-            }
 
-            simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[index]);
-            simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[index]);
-            index = SIMFS_INVALID_INDEX;
+
+    if(block.type == SIMFS_INDEX_CONTENT_TYPE){
+        for (int i = 0; i < 7; ++i) {
+            if(block.content.index[i] != 0){
+                return SIMFS_NOT_EMPTY_ERROR;
+            }
         }
+        simfsFlipBit(simfsVolume->bitvector, index);
+        simfsFlipBit(simfsContext->bitvector, index);
+
+    } else if(simfsVolume->block[index].type == SIMFS_FILE_CONTENT_TYPE || simfsVolume->block[index].type == SIMFS_FOLDER_CONTENT_TYPE){
+        simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
+        simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
+        // todo set index2 to bad file descriptor
+        //simfsVolume->block[index].content =
     }
+
 
     return SIMFS_NO_ERROR;
 }
