@@ -213,6 +213,7 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     fclose(file);
 
     // TODO: complete
+    simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
 
     return SIMFS_NO_ERROR;
 }
@@ -466,8 +467,7 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
         simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
         simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
         // todo set index2 to bad file descriptor
-        indexPoint->index[indexPoint->number] = 0;
-        simfsVolume->block[index].type = SIMFS_INVALID_CONTENT_TYPE;
+        indexPoint->index[indexPoint->number] = SIMFS_INVALID_INDEX;
     }
 
 
