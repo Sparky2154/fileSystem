@@ -302,6 +302,8 @@ struct link* getIdList(SIMFS_BLOCK_TYPE block){
         free(first);
         return actualFirst;
     }
+    //todo finish this
+    return 0;
 }
 
 short compareIdentifiers(struct link* link, unsigned long long id){
@@ -341,6 +343,8 @@ short createHashFile(SIMFS_NAME_TYPE fileName, SIMFS_INDEX_TYPE* index, int inde
         }
         *i = *hashLocation;
     }
+    //todo finish this
+    return 0;
 }
 
 void findEndOfIndex(SIMFS_INDEX_TYPE** index){
