@@ -203,6 +203,22 @@ SIMFS_DIR_ENT* findEmptyHash(char* fileName){
     return hashed;
 }
 
+void recursiveHashing(SIMFS_INDEX_TYPE* index){
+
+    while (true){
+        for (int i = 0; i < 6; ++i) {
+            findEmptyHash(simfsVolume->block[index[i]].content.fileDescriptor.name);
+        }
+
+        if(index[6]==0) {
+            break;
+        } else{
+            index = simfsVolume->block[index[6]].content.index;
+        }
+
+    }
+}
+
 SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
 {
 
@@ -228,6 +244,7 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     simfsVolume->superblock.attr.nextUniqueIdentifier++;
     hash->nodeReference = simfsContext->processControlBlocks->currentWorkingDirectory;
     memcpy(simfsContext->bitvector, simfsVolume->bitvector, 512);
+    recursiveHashing(simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.index);
     return SIMFS_NO_ERROR;
 }
 
@@ -309,8 +326,8 @@ struct ffret{
 };
 
 struct ffret* findFile(SIMFS_NAME_TYPE fileName){
-    SIMFS_INDEX_TYPE* index = simfsVolume->block[simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.fileDescriptor.block_ref].content.index;
-    do{
+    SIMFS_INDEX_TYPE* index = simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.index;
+    while (true){
         for (int j = 0; j < 6; ++j) {
             if (index[j] != 0
             && (simfsVolume->block[index[j]].type == SIMFS_FOLDER_CONTENT_TYPE
@@ -322,7 +339,12 @@ struct ffret* findFile(SIMFS_NAME_TYPE fileName){
                 return ret;
             }
         }
-    }while (index[6] != 0);
+        if(index[6] != 0){
+            index = simfsVolume->block[index[6]].content.index;
+        } else{
+            break;
+        }
+    }
     return NULL;
  }
 
