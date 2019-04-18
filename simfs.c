@@ -22,10 +22,6 @@ SIMFS_VOLUME *simfsVolume;
  * Retuns a hash value within the limits of the directory.
  */
 
-struct ffReturn{
-    SIMFS_INDEX_TYPE* index;
-    int indexNumber;
-};
 
 inline unsigned long hash(unsigned char *str)
 {
@@ -194,6 +190,19 @@ SIMFS_ERROR simfsCreateFileSystem(char *simfsFileName)
  * be changed as the user navigates the file system hierarchy.
  *
  */
+
+SIMFS_DIR_ENT* findEmptyHash(char* fileName){
+    SIMFS_INDEX_TYPE index = hash((unsigned char*)fileName);
+    SIMFS_DIR_ENT* hashed = simfsContext->directory[index];
+    while (hashed->next != NULL){
+        hashed = hashed->next;
+    }
+    hashed->next = malloc(sizeof(SIMFS_DIR_ENT));
+    hashed = hashed->next;
+    hashed->next = NULL;
+    return hashed;
+}
+
 SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
 {
 
@@ -214,7 +223,11 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
 
     // TODO: complete
     simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
-
+    SIMFS_DIR_ENT* hash = findEmptyHash(simfsFileName);
+    hash->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
+    simfsVolume->superblock.attr.nextUniqueIdentifier++;
+    hash->nodeReference = simfsContext->processControlBlocks->currentWorkingDirectory;
+    memcpy(simfsContext->bitvector, simfsVolume->bitvector, 512);
     return SIMFS_NO_ERROR;
 }
 
@@ -273,80 +286,6 @@ int findNextEmpty(){
     return -1;
 }
 
-struct link{
-    unsigned long long identifier;
-    struct link* next;
-};
-
-struct link* getIdList(SIMFS_BLOCK_TYPE block){
-    if (block.type == SIMFS_INDEX_CONTENT_TYPE){
-        //i = block.content.index[0]
-        //simfsVolume->block[i].content.fileDescriptor.identifier
-        //i++
-        short check = 0;
-        SIMFS_INDEX_TYPE* index = block.content.index;
-        struct link* first = malloc(sizeof(struct link));
-        struct link* last = first;
-        do{
-            for (int i = 0; i < 6; ++i) {
-                last->next = malloc(sizeof(struct link));
-                last = last->next;
-                last->identifier = simfsVolume->block[index[i]].content.fileDescriptor.identifier;
-            }
-            if(index[6]==0){
-                check = 1;
-            } else{
-                index = simfsVolume->block[index[6]].content.index;
-            }
-        }while (check == 0);
-        struct link* actualFirst = first->next;
-        free(first);
-        return actualFirst;
-    }
-    //todo finish this
-    return 0;
-}
-
-short compareIdentifiers(struct link* link, unsigned long long id){
-    struct link* currentLink = link;
-    while (currentLink != NULL){
-        if (currentLink->identifier == id){
-            return -1;
-        }
-        currentLink->next = currentLink;
-    }
-    return 0;
-}
-
-short createHashFile(SIMFS_NAME_TYPE fileName, SIMFS_INDEX_TYPE* index, int indexIndex){
-
-    unsigned long hashValue = hash((unsigned char*)fileName);
-    SIMFS_BLOCK_TYPE currentBlock = simfsVolume->block[index[indexIndex]];
-    SIMFS_DIR_ENT* hashLocation= simfsContext->directory[hashValue];
-    if(hashLocation != NULL && compareIdentifiers(getIdList(currentBlock), hashLocation->uniqueFileIdentifier) == -1){
-        return -1;
-    }
-
-    SIMFS_DIR_ENT* newHashLocation = malloc(sizeof(SIMFS_DIR_ENT));
-    newHashLocation->next = hashLocation;
-    hashLocation = newHashLocation;
-
-    hashLocation->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
-    simfsVolume->superblock.attr.nextUniqueIdentifier++;
-    simfsVolume->block[index[indexIndex]].content.fileDescriptor.identifier = hashLocation->uniqueFileIdentifier;
-    hashLocation[hashValue].nodeReference = index[indexIndex];
-    simfsContext->directory[hashValue]->next = NULL;
-    SIMFS_INDEX_TYPE currentWorkingDirectory = simfsContext->processControlBlocks->currentWorkingDirectory;
-    SIMFS_DIR_ENT* i = simfsContext->directory[currentWorkingDirectory];
-    if(i != NULL) {
-        while (i->next != NULL) {
-            i=i->next;
-        }
-        *i = *hashLocation;
-    }
-    //todo finish this
-    return 0;
-}
 
 void findEndOfIndex(SIMFS_INDEX_TYPE** index){
     do{
