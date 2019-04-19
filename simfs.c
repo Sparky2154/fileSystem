@@ -194,6 +194,7 @@ SIMFS_ERROR simfsCreateFileSystem(char *simfsFileName)
 SIMFS_DIR_ENT* findEmptyHash(char* fileName){
     SIMFS_INDEX_TYPE index = hash((unsigned char*)fileName);
     SIMFS_DIR_ENT* hashed = simfsContext->directory[index];
+    if (hashed == NULL) return NULL;
     while (hashed->next != NULL){
         hashed = hashed->next;
     }
@@ -238,8 +239,9 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     fclose(file);
 
     // TODO: complete
+    simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
     simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
-    SIMFS_DIR_ENT* hash = findEmptyHash(simfsFileName);
+    SIMFS_INDEX_TYPE* hashing = hash(simfsFileName);
     hash->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
     simfsVolume->superblock.attr.nextUniqueIdentifier++;
     hash->nodeReference = simfsContext->processControlBlocks->currentWorkingDirectory;
@@ -356,7 +358,7 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
         return SIMFS_DUPLICATE_ERROR;
     }
 
-    SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.fileDescriptor.block_ref].content.index;
+    SIMFS_INDEX_TYPE *index = simfsVolume->block[simfsContext->processControlBlocks->currentWorkingDirectory].content.index;
     int i = simfsFindFreeBlock(simfsVolume->bitvector);
     simfsFlipBit(simfsVolume->bitvector, i);
 
@@ -511,11 +513,31 @@ SIMFS_ERROR simfsGetFileInfo(SIMFS_NAME_TYPE fileName, SIMFS_FILE_DESCRIPTOR_TYP
  * file table, or if there is any other allocation problem, then the function returns SIMFS_ALLOC_ERROR.
  *
  */
+
+SIMFS_DIR_ENT* findFileUsingHash(char* fileName, unsigned long long identifier){
+    SIMFS_INDEX_TYPE index = hash((unsigned char*)fileName);
+    SIMFS_DIR_ENT* hashed = simfsContext->directory[index];
+
+    while (simfsVolume->block[hashed->nodeReference].content.fileDescriptor.identifier != identifier){
+        hashed = hashed->next;
+    }
+    return hashed;
+}
+
 SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *fileHandle)
 {
     // TODO: implement
+    struct ffret* hashLocation = findFile(fileName);
+    if(hashLocation != NULL){
+        SIMFS_INDEX_TYPE hash = hashLocation->index[hashLocation->number];
 
-    return SIMFS_NO_ERROR;
+        if(simfsContext->globalOpenFileTable[*fileHandle].type != SIMFS_INVALID_INDEX){
+            simfsContext->globalOpenFileTable[*fileHandle].referenceCount++;
+        }
+
+
+    }
+    return SIMFS_NOT_FOUND_ERROR;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -552,6 +574,7 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
 SIMFS_ERROR simfsWriteFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char *writeBuffer)
 {
     // TODO: implement
+
 
     return SIMFS_NO_ERROR;
 }
