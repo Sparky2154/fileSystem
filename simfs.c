@@ -241,7 +241,7 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     // TODO: complete
     simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
     simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
-    SIMFS_INDEX_TYPE* hashing = hash(simfsFileName);
+    SIMFS_DIR_ENT* hash = findEmptyHash(simfsFileName);
     hash->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
     simfsVolume->superblock.attr.nextUniqueIdentifier++;
     hash->nodeReference = simfsContext->processControlBlocks->currentWorkingDirectory;
