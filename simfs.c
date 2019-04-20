@@ -215,10 +215,11 @@ void recursiveHashing(SIMFS_INDEX_TYPE* index){
 
     while (true){
         for (int i = 0; i < 6; ++i) {
-            findEmptyHash(simfsVolume->block[index[i]].content.fileDescriptor.name);
+            if(simfsVolume->block[index[i]].type != SIMFS_INVALID_CONTENT_TYPE)
+                findEmptyHash(simfsVolume->block[index[i]].content.fileDescriptor.name);
         }
 
-        if(index[6]==0) {
+        if(index[6]==0 || simfsVolume->block[index[6]].type == SIMFS_INVALID_CONTENT_TYPE) {
             break;
         } else{
             index = simfsVolume->block[index[6]].content.index;
