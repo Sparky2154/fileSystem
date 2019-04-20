@@ -533,42 +533,50 @@ SIMFS_DIR_ENT* findFileUsingHash(char* fileName, unsigned long long identifier){
     return hashed;
 }
 
+int findEmptyInFileTable(){
+    for (int i = 0; i < SIMFS_MAX_NUMBER_OF_OPEN_FILES; ++i) {
+        if(simfsContext->globalOpenFileTable[i].type == SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
+            return i;
+        }
+    }
+    return -1;
+}
+
+void setGOFTV(int fileIndex, SIMFS_INDEX_TYPE fileDescriptorType){
+    SIMFS_BLOCK_TYPE file = simfsVolume->block[fileDescriptorType];
+    SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE* globalTableType = &(simfsContext->globalOpenFileTable[fileIndex]);
+
+    globalTableType->type = file.type;
+    globalTableType->fileDescriptor = fileDescriptorType;
+    globalTableType->referenceCount = 1;
+    globalTableType->accessRights = file.content.fileDescriptor.accessRights;
+    globalTableType->creationTime = file.content.fileDescriptor.creationTime;
+    globalTableType->lastAccessTime = file.content.fileDescriptor.lastAccessTime;
+    globalTableType->lastModificationTime = file.content.fileDescriptor.lastModificationTime;
+    globalTableType->owner = file.content.fileDescriptor.owner;
+    globalTableType->size = file.content.fileDescriptor.size;
+}
+
 SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *fileHandle)
 {
     // TODO: implement
     struct ffret* hashLocation = findFile(fileName);
-    if(hashLocation != NULL){
-        SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
-
-        if(simfsContext->globalOpenFileTable[*fileHandle].type != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
-            simfsContext->globalOpenFileTable[*fileHandle].referenceCount++;
-        } else{
-            SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE* globalTableType = NULL;
-            for (int i = 0; i < SIMFS_MAX_NUMBER_OF_OPEN_FILES; ++i) {
-                if(simfsContext->globalOpenFileTable[i].type != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
-                    globalTableType = &(simfsContext->globalOpenFileTable[i]);
-                    globalTableType->type = file.type;
-                    globalTableType->fileDescriptor = hashLocation->index[hashLocation->number];
-                    globalTableType->referenceCount = 1;
-                    globalTableType->size = file.content.fileDescriptor.size;
-                    globalTableType->owner = file.content.fileDescriptor.owner;
-                    globalTableType->lastModificationTime = file.content.fileDescriptor.lastModificationTime;
-                    globalTableType->lastAccessTime = file.content.fileDescriptor.lastAccessTime;
-                    globalTableType->creationTime = file.content.fileDescriptor.creationTime;
-                    globalTableType->accessRights = file.content.fileDescriptor.accessRights;
-                    break;
-                }
-            }
-            if(globalTableType == NULL){
-                return SIMFS_ALLOC_ERROR;
-            }
-
-        }
-
-
-
+    if(hashLocation == NULL){
+        return SIMFS_NOT_FOUND_ERROR;
     }
-    return SIMFS_NOT_FOUND_ERROR;
+    SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
+
+    if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != 0){
+        simfsContext->globalOpenFileTable[simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex].referenceCount++;
+    } else {
+        int fileIndex = findEmptyInFileTable();
+        if (fileIndex == -1) {
+            return SIMFS_ALLOC_ERROR;
+        }
+        setGOFTV(fileIndex, hashLocation->index[hashLocation->number]);
+    }
+
+    return SIMFS_NO_ERROR;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -660,6 +668,13 @@ SIMFS_ERROR simfsReadFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char **readBuffer)
 SIMFS_ERROR simfsCloseFile(SIMFS_FILE_HANDLE_TYPE fileHandle)
 {
     // TODO: implement
+    SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE file = simfsContext->globalOpenFileTable[fileHandle];
+
+    file.referenceCount--;
+    if (file.referenceCount == 0){
+        file.type = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+        simfsContext->directory[file.fileDescriptor]->globalOpenFileTableIndex = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+    }
 
     return SIMFS_NO_ERROR;
 }
