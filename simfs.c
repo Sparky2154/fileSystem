@@ -532,12 +532,30 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
     // TODO: implement
     struct ffret* hashLocation = findFile(fileName);
     if(hashLocation != NULL){
-        SIMFS_INDEX_TYPE file = hashLocation->index[hashLocation->number];
+        SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
 
         if(simfsContext->globalOpenFileTable[*fileHandle].type != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
             simfsContext->globalOpenFileTable[*fileHandle].referenceCount++;
         } else{
-
+            SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE* globalTableType = NULL;
+            for (int i = 0; i < SIMFS_MAX_NUMBER_OF_OPEN_FILES; ++i) {
+                if(simfsContext->globalOpenFileTable[i].type != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
+                    globalTableType = &(simfsContext->globalOpenFileTable[i]);
+                    globalTableType->type = file.type;
+                    globalTableType->fileDescriptor = hashLocation->index[hashLocation->number];
+                    globalTableType->referenceCount = 1;
+                    globalTableType->size = file.content.fileDescriptor.size;
+                    globalTableType->owner = file.content.fileDescriptor.owner;
+                    globalTableType->lastModificationTime = file.content.fileDescriptor.lastModificationTime;
+                    globalTableType->lastAccessTime = file.content.fileDescriptor.lastAccessTime;
+                    globalTableType->creationTime = file.content.fileDescriptor.creationTime;
+                    globalTableType->accessRights = file.content.fileDescriptor.accessRights;
+                    break;
+                }
+            }
+            if(globalTableType == NULL){
+                return SIMFS_ALLOC_ERROR;
+            }
         }
 
 
