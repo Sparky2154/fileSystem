@@ -201,6 +201,7 @@ SIMFS_DIR_ENT* findEmptyHash(char* fileName){
         hashed->globalOpenFileTableIndex = -1;
         hashed->uniqueFileIdentifier = -1;
         simfsContext->directory[index] = hashed;
+        return hashed;
     }
     while (hashed->next != NULL){
         hashed = hashed->next;
@@ -303,15 +304,6 @@ SIMFS_ERROR simfsUmountFileSystem(char *simfsFileName)
  *
  */
 
-
-int findNextEmpty(){
-        for (int i = 0; i < simfsVolume->superblock.attr.numberOfBlocks; ++i) {
-            if(simfsVolume->bitvector[i] == 0){
-                return i;
-            }
-        }
-    return -1;
-}
 
 
 void findEndOfIndex(SIMFS_INDEX_TYPE** index){
