@@ -532,11 +532,14 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
     // TODO: implement
     struct ffret* hashLocation = findFile(fileName);
     if(hashLocation != NULL){
-        SIMFS_INDEX_TYPE hash = hashLocation->index[hashLocation->number];
+        SIMFS_INDEX_TYPE file = hashLocation->index[hashLocation->number];
 
-        if(simfsContext->globalOpenFileTable[*fileHandle].type != SIMFS_INVALID_INDEX){
+        if(simfsContext->globalOpenFileTable[*fileHandle].type != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
             simfsContext->globalOpenFileTable[*fileHandle].referenceCount++;
+        } else{
+
         }
+
 
 
     }
