@@ -6,12 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/sparky/Desktop/ci/operating/project1/simfs/simfs.c
-simfs.h
-/home/sparky/Desktop/ci/operating/project1/simfs/simfs.h
-stdbool.h
--
-
 /home/sparky/Desktop/ci/operating/project1/simfs/simfs.h
 time.h
 -
@@ -23,6 +17,10 @@ fuse.h
 -
 stdio.h
 -
+
+/home/sparky/Desktop/ci/operating/project1/simfs/test_simfs.c
+simfs.h
+/home/sparky/Desktop/ci/operating/project1/simfs/simfs.h
 
 /usr/include/fuse/fuse.h
 fuse_common.h

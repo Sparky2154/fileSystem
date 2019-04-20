@@ -248,7 +248,13 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     fclose(file);
 
     // TODO: complete
-    simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
+    if(simfsContext->processControlBlocks != NULL){
+        SIMFS_PROCESS_CONTROL_BLOCK_TYPE* controlBlock = simfsContext->processControlBlocks;
+        simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
+        simfsContext->processControlBlocks->next = controlBlock;
+    } else {
+        simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
+    }
     simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
     SIMFS_DIR_ENT* hash = findEmptyHash(simfsFileName);
     hash->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
@@ -627,7 +633,13 @@ SIMFS_ERROR simfsWriteFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char *writeBuffer)
 SIMFS_ERROR simfsReadFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char **readBuffer)
 {
     // TODO: implement
-
+    SIMFS_INDEX_TYPE fileDescriptor = simfsContext->globalOpenFileTable[fileHandle].fileDescriptor;
+    if(fileDescriptor == SIMFS_INVALID_INDEX)
+        return SIMFS_NOT_FOUND_ERROR;
+    SIMFS_BLOCK_TYPE file = simfsVolume->block[fileDescriptor];
+    if(file.type == SIMFS_INVALID_CONTENT_TYPE)
+        return SIMFS_NOT_FOUND_ERROR;
+    *readBuffer = simfsVolume->block[file.content.fileDescriptor.block_ref].content.data;
     return SIMFS_NO_ERROR;
 }
 
