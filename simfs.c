@@ -556,6 +556,7 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
             if(globalTableType == NULL){
                 return SIMFS_ALLOC_ERROR;
             }
+
         }
 
 
