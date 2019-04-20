@@ -194,7 +194,14 @@ SIMFS_ERROR simfsCreateFileSystem(char *simfsFileName)
 SIMFS_DIR_ENT* findEmptyHash(char* fileName){
     SIMFS_INDEX_TYPE index = hash((unsigned char*)fileName);
     SIMFS_DIR_ENT* hashed = simfsContext->directory[index];
-    if (hashed == NULL) return NULL;
+    if (hashed == NULL) {
+        hashed = malloc(sizeof(SIMFS_DIR_ENT));
+        hashed->next = NULL;
+        hashed->nodeReference = SIMFS_INVALID_INDEX;
+        hashed->globalOpenFileTableIndex = -1;
+        hashed->uniqueFileIdentifier = -1;
+        simfsContext->directory[index] = hashed;
+    }
     while (hashed->next != NULL){
         hashed = hashed->next;
     }
