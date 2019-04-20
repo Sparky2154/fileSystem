@@ -372,11 +372,13 @@ SIMFS_ERROR simfsCreateFile(SIMFS_NAME_TYPE fileName, SIMFS_CONTENT_TYPE type) {
             simfsVolume->block[i].content.fileDescriptor.type = type;
             strcpy(simfsVolume->block[i].content.fileDescriptor.name, fileName);
             simfsVolume->block[i].content.fileDescriptor.accessRights = simfsContext->globalOpenFileTable->accessRights;
-
+            simfsVolume->block[i].content.fileDescriptor.identifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
+            SIMFS_DIR_ENT* hash = findEmptyHash(fileName);
+            hash->uniqueFileIdentifier = simfsVolume->block[i].content.fileDescriptor.identifier;
+            hash->nodeReference = simfsVolume->block[i].content.fileDescriptor.block_ref;
             return SIMFS_NO_ERROR;
         }
     }
-
 
 
     return SIMFS_WRITE_ERROR;
@@ -432,7 +434,7 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
         // todo set index2 to bad file descriptor
         indexPoint->index[indexPoint->number] = SIMFS_INVALID_INDEX;
     }
-
+    //todo remove file from hash
 
     return SIMFS_NO_ERROR;
 }
