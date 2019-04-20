@@ -429,10 +429,11 @@ SIMFS_ERROR simfsDeleteFile(SIMFS_NAME_TYPE fileName)
         simfsFlipBit(simfsContext->bitvector, index);
 
     } else if(simfsVolume->block[index].type == SIMFS_FILE_CONTENT_TYPE || simfsVolume->block[index].type == SIMFS_FOLDER_CONTENT_TYPE){
-        simfsFlipBit(simfsVolume->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
-        simfsFlipBit(simfsContext->bitvector, simfsVolume->bitvector[simfsVolume->block[index].content.fileDescriptor.block_ref]);
-        // todo set index2 to bad file descriptor
-        indexPoint->index[indexPoint->number] = SIMFS_INVALID_INDEX;
+        simfsFlipBit(simfsVolume->bitvector, simfsVolume->block[index].content.fileDescriptor.block_ref);
+        simfsFlipBit(simfsContext->bitvector, simfsVolume->block[index].content.fileDescriptor.block_ref);
+        simfsFlipBit(simfsVolume->bitvector, index);
+        simfsFlipBit(simfsContext->bitvector, index);
+        simfsVolume->block[indexPoint->index[indexPoint->number]].type = SIMFS_INVALID_CONTENT_TYPE;
     }
     //todo remove file from hash
 
