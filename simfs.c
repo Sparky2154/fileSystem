@@ -543,19 +543,19 @@ void setGOFTV(int fileIndex, SIMFS_INDEX_TYPE fileDescriptorType){
     globalTableType->size = file.content.fileDescriptor.size;
 }
 
-SIMFS_FILE_DESCRIPTOR_TYPE* searchFileTable(SIMFS_NAME_TYPE name, unsigned long long int identifier){
-    SIMFS_PROCESS_CONTROL_BLOCK_TYPE* current = simfsContext->processControlBlocks;
-
-    while (current != NULL){
-        if(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor.identifier == identifier){
-            return &(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor);
-        }
-        current = current->next;
-    }
-
-
-    return NULL;
-}
+//SIMFS_FILE_DESCRIPTOR_TYPE* searchFileTable(SIMFS_NAME_TYPE name, unsigned long long int identifier){
+//    SIMFS_PROCESS_CONTROL_BLOCK_TYPE* current = simfsContext->processControlBlocks;
+//
+//    while (current != NULL){
+//        if(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor.identifier == identifier){
+//            return &(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor);
+//        }
+//        current = current->next;
+//    }
+//
+//
+//    return NULL;
+//}
 
 SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *fileHandle)
 {
@@ -565,12 +565,12 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
         return SIMFS_NOT_FOUND_ERROR;
     }
     SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
-    SIMFS_FILE_DESCRIPTOR_TYPE* duplicate = searchFileTable(fileName, file.content.fileDescriptor.identifier);
-    if(duplicate != NULL){
-        return SIMFS_DUPLICATE_ERROR;
-    }
+//    SIMFS_FILE_DESCRIPTOR_TYPE* duplicate = searchFileTable(fileName, file.content.fileDescriptor.identifier);
+//    if(duplicate != NULL){
+//        return SIMFS_DUPLICATE_ERROR;
+//    }
 
-    if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != 0){
+    if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
         simfsContext->globalOpenFileTable[simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex].referenceCount++;
         *fileHandle = simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex;
         if(simfsContext->processControlBlocks->openFileTable->globalOpenFileTableIndex == SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
@@ -588,10 +588,12 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
             return SIMFS_ALLOC_ERROR;
         }
         setGOFTV(fileIndex, hashLocation->index[hashLocation->number]);
+        simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex = fileIndex;
         *fileHandle = fileIndex;
+        return SIMFS_NO_ERROR;
     }
 
-    return SIMFS_NO_ERROR;
+    return SIMFS_DUPLICATE_ERROR;
 }
 
 //////////////////////////////////////////////////////////////////////////
