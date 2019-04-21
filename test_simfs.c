@@ -16,16 +16,21 @@ int main()
         exit(EXIT_FAILURE);
 
     // TODO: implement thorough testing of all the functionality
-//
-//    char* fileName = "myFirstFile";
-//    if (simfsCreateFile(fileName, SIMFS_FILE_CONTENT_TYPE) != SIMFS_NO_ERROR)
-//        exit(EXIT_FAILURE);
-//    SIMFS_FILE_DESCRIPTOR_TYPE* fileDescriptor = malloc(sizeof(SIMFS_FILE_DESCRIPTOR_TYPE));
-//    if(simfsGetFileInfo(fileName, fileDescriptor))
-//        exit(EXIT_FAILURE);
-//
-//    if (simfsDeleteFile(fileName) != SIMFS_NO_ERROR)
-//        exit(EXIT_FAILURE);
+
+    char* fileName = "myFirstFile";
+    if (simfsCreateFile(fileName, SIMFS_FILE_CONTENT_TYPE) != SIMFS_NO_ERROR)
+        exit(EXIT_FAILURE);
+    SIMFS_FILE_DESCRIPTOR_TYPE* fileDescriptor = malloc(sizeof(SIMFS_FILE_DESCRIPTOR_TYPE));
+    if(simfsGetFileInfo(fileName, fileDescriptor))
+        exit(EXIT_FAILURE);
+    int b = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+    if(simfsOpenFile(fileName, &b))
+        exit(EXIT_FAILURE);
+    if(simfsCloseFile(b))
+        exit(EXIT_FAILURE);
+
+    if (simfsDeleteFile(fileName) != SIMFS_NO_ERROR)
+        exit(EXIT_FAILURE);
 
 
     // the following is just some sample code for simulating user and process identifiers that are

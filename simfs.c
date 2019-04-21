@@ -232,7 +232,6 @@ void recursiveHashing(SIMFS_INDEX_TYPE* index){
 SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
 {
 
-    simfsContext = malloc(sizeof(SIMFS_CONTEXT_TYPE));
     if (simfsContext == NULL)
         return SIMFS_ALLOC_ERROR;
 
@@ -521,7 +520,7 @@ SIMFS_ERROR simfsGetFileInfo(SIMFS_NAME_TYPE fileName, SIMFS_FILE_DESCRIPTOR_TYP
 
 int findEmptyInFileTable(){
     for (int i = 0; i < SIMFS_MAX_NUMBER_OF_OPEN_FILES; ++i) {
-        if(simfsContext->globalOpenFileTable[i].type == SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
+        if(simfsContext->globalOpenFileTable[i].type == SIMFS_INVALID_CONTENT_TYPE){
             return i;
         }
     }
@@ -564,13 +563,8 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
     if(hashLocation == NULL){
         return SIMFS_NOT_FOUND_ERROR;
     }
-    SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
-//    SIMFS_FILE_DESCRIPTOR_TYPE* duplicate = searchFileTable(fileName, file.content.fileDescriptor.identifier);
-//    if(duplicate != NULL){
-//        return SIMFS_DUPLICATE_ERROR;
-//    }
 
-    if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
+    if(simfsContext->directory[hashLocation->index[hashLocation->number]] != NULL && simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
         simfsContext->globalOpenFileTable[simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex].referenceCount++;
         *fileHandle = simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex;
         if(simfsContext->processControlBlocks->openFileTable->globalOpenFileTableIndex == SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
@@ -588,6 +582,7 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
             return SIMFS_ALLOC_ERROR;
         }
         setGOFTV(fileIndex, hashLocation->index[hashLocation->number]);
+        simfsContext->directory[hashLocation->index[hashLocation->number]] = malloc(sizeof(SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE));
         simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex = fileIndex;
         *fileHandle = fileIndex;
         return SIMFS_NO_ERROR;
@@ -685,12 +680,13 @@ SIMFS_ERROR simfsReadFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char **readBuffer)
 SIMFS_ERROR simfsCloseFile(SIMFS_FILE_HANDLE_TYPE fileHandle)
 {
     // TODO: implement
-    SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE file = simfsContext->globalOpenFileTable[fileHandle];
+    SIMFS_OPEN_FILE_GLOBAL_TABLE_TYPE* file = &(simfsContext->globalOpenFileTable[fileHandle]);
 
-    file.referenceCount--;
-    if (file.referenceCount == 0){
-        file.type = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
-        simfsContext->directory[file.fileDescriptor]->globalOpenFileTableIndex = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+    file->referenceCount--;
+    if (file->referenceCount == 0){
+        file->type = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+        simfsContext->directory[file->fileDescriptor]->globalOpenFileTableIndex = SIMFS_INVALID_OPEN_FILE_TABLE_INDEX;
+        file->fileDescriptor = SIMFS_INVALID_INDEX;
     }
 
     return SIMFS_NO_ERROR;
