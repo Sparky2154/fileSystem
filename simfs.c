@@ -518,15 +518,6 @@ SIMFS_ERROR simfsGetFileInfo(SIMFS_NAME_TYPE fileName, SIMFS_FILE_DESCRIPTOR_TYP
  *
  */
 
-SIMFS_DIR_ENT* findFileUsingHash(char* fileName, unsigned long long identifier){
-    SIMFS_INDEX_TYPE index = hash((unsigned char*)fileName);
-    SIMFS_DIR_ENT* hashed = simfsContext->directory[index];
-
-    while (simfsVolume->block[hashed->nodeReference].content.fileDescriptor.identifier != identifier){
-        hashed = hashed->next;
-    }
-    return hashed;
-}
 
 int findEmptyInFileTable(){
     for (int i = 0; i < SIMFS_MAX_NUMBER_OF_OPEN_FILES; ++i) {
