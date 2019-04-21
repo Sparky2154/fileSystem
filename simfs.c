@@ -248,13 +248,8 @@ SIMFS_ERROR simfsMountFileSystem(char *simfsFileName)
     fclose(file);
 
     // TODO: complete
-    if(simfsContext->processControlBlocks != NULL){
-        SIMFS_PROCESS_CONTROL_BLOCK_TYPE* controlBlock = simfsContext->processControlBlocks;
-        simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
-        simfsContext->processControlBlocks->next = controlBlock;
-    } else {
-        simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
-    }
+    simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
+
     simfsContext->processControlBlocks->currentWorkingDirectory = simfsVolume->superblock.attr.rootNodeIndex;
     SIMFS_DIR_ENT* hash = findEmptyHash(simfsFileName);
     hash->uniqueFileIdentifier = simfsVolume->superblock.attr.nextUniqueIdentifier;
@@ -557,6 +552,20 @@ void setGOFTV(int fileIndex, SIMFS_INDEX_TYPE fileDescriptorType){
     globalTableType->size = file.content.fileDescriptor.size;
 }
 
+SIMFS_FILE_DESCRIPTOR_TYPE* searchFileTable(SIMFS_NAME_TYPE name, unsigned long long int identifier){
+    SIMFS_PROCESS_CONTROL_BLOCK_TYPE* current = simfsContext->processControlBlocks;
+
+    while (current != NULL){
+        if(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor.identifier == identifier){
+            return &(simfsVolume->block[simfsContext->globalOpenFileTable[current->openFileTable->globalOpenFileTableIndex].fileDescriptor].content.fileDescriptor);
+        }
+        current = current->next;
+    }
+
+
+    return NULL;
+}
+
 SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *fileHandle)
 {
     // TODO: implement
@@ -565,10 +574,23 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
         return SIMFS_NOT_FOUND_ERROR;
     }
     SIMFS_BLOCK_TYPE file = simfsVolume->block[hashLocation->index[hashLocation->number]];
+    SIMFS_FILE_DESCRIPTOR_TYPE* duplicate = searchFileTable(fileName, file.content.fileDescriptor.identifier);
+    if(duplicate != NULL){
+        return SIMFS_DUPLICATE_ERROR;
+    }
 
     if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != 0){
         simfsContext->globalOpenFileTable[simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex].referenceCount++;
         *fileHandle = simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex;
+        if(simfsContext->processControlBlocks->openFileTable->globalOpenFileTableIndex == SIMFS_INVALID_OPEN_FILE_TABLE_INDEX){
+            simfsContext->processControlBlocks->openFileTable->globalOpenFileTableIndex = *fileHandle;
+            simfsContext->processControlBlocks->numberOfOpenFiles = 1;
+        } else{
+            SIMFS_PROCESS_CONTROL_BLOCK_TYPE* previous = simfsContext->processControlBlocks;
+            simfsContext->processControlBlocks = malloc(sizeof(SIMFS_PROCESS_CONTROL_BLOCK_TYPE));
+            simfsContext->processControlBlocks->next = previous;
+            simfsContext->processControlBlocks->numberOfOpenFiles++;
+        }
     } else {
         int fileIndex = findEmptyInFileTable();
         if (fileIndex == -1) {
