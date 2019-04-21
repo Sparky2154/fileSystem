@@ -568,12 +568,14 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
 
     if(simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex != 0){
         simfsContext->globalOpenFileTable[simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex].referenceCount++;
+        *fileHandle = simfsContext->directory[hashLocation->index[hashLocation->number]]->globalOpenFileTableIndex;
     } else {
         int fileIndex = findEmptyInFileTable();
         if (fileIndex == -1) {
             return SIMFS_ALLOC_ERROR;
         }
         setGOFTV(fileIndex, hashLocation->index[hashLocation->number]);
+        *fileHandle = fileIndex;
     }
 
     return SIMFS_NO_ERROR;
