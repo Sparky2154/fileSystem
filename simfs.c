@@ -625,6 +625,14 @@ SIMFS_ERROR simfsOpenFile(SIMFS_NAME_TYPE fileName, SIMFS_FILE_HANDLE_TYPE *file
 SIMFS_ERROR simfsWriteFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char *writeBuffer)
 {
     // TODO: implement
+    SIMFS_INDEX_TYPE fileDescriptor = simfsContext->globalOpenFileTable[fileHandle].fileDescriptor;
+    if(fileDescriptor == SIMFS_INVALID_INDEX)
+        return SIMFS_NOT_FOUND_ERROR;
+    SIMFS_BLOCK_TYPE file = simfsVolume->block[fileDescriptor];
+    if(file.type == SIMFS_INVALID_CONTENT_TYPE)
+        return SIMFS_NOT_FOUND_ERROR;
+    memcpy(simfsVolume->block[file.content.fileDescriptor.block_ref].content.data,writeBuffer,14);
+
 
 
     return SIMFS_NO_ERROR;
