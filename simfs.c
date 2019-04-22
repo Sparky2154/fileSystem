@@ -631,9 +631,12 @@ SIMFS_ERROR simfsWriteFile(SIMFS_FILE_HANDLE_TYPE fileHandle, char *writeBuffer)
     SIMFS_BLOCK_TYPE file = simfsVolume->block[fileDescriptor];
     if(file.type == SIMFS_INVALID_CONTENT_TYPE)
         return SIMFS_NOT_FOUND_ERROR;
+    if(file.content.fileDescriptor.block_ref == SIMFS_INVALID_INDEX){
+        file.content.fileDescriptor.block_ref = simfsFindFreeBlock(simfsVolume->bitvector);
+        simfsFlipBit(simfsVolume->bitvector, file.content.fileDescriptor.block_ref);
+        simfsFlipBit(simfsContext->bitvector, file.content.fileDescriptor.block_ref);
+    }
     memcpy(simfsVolume->block[file.content.fileDescriptor.block_ref].content.data,writeBuffer,14);
-
-
 
     return SIMFS_NO_ERROR;
 }
